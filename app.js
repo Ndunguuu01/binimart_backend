@@ -1,24 +1,37 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const bodyParser = require('body-parser');
 const cors = require('cors');
+const multer = require('multer'); // Import Multer
 const productRoutes = require('./routes/productRoutes');
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(bodyParser.json());
+
+// Define the frontend URL (replace with your actual frontend URL)
+const frontendUrl = 'http://localhost:64679'; // Change this to your actual frontend URL
+
+// Middleware
+app.use(cors({
+  origin: frontendUrl,  // Only allow this origin to make requests
+}));
+
+app.use(express.json()); // Built-in JSON parsing
+
+// Multer Storage Configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); // Specify the directory to store uploaded images
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + '-' + file.originalname);
+  }
+});
+
+const upload = multer({ storage: storage });
 
 // Routes
-app.use('/api/products', productRoutes);
+app.use('/api/products', upload.single('image'), productRoutes); // Apply Multer middleware to product routes
 
-const PORT = process.env.PORT || 5001;
-
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log('✅ Connected to MongoDB');
-    app.listen(PORT, () => console.log(`🚀 Server is running on http://localhost:${PORT}`));
-  })
-  .catch(err => console.error('❌ Unable to connect to MongoDB:', err.message));
+// ... rest of your code
